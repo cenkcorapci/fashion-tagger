@@ -1,7 +1,7 @@
 from keras.applications.vgg16 import VGG16
 from keras.layers import Dense, Flatten, Dropout
 from keras.models import Model
-
+from keras.optimizers import Adamax
 from commons.config import CATEGORY_COUNTS_DICT
 
 
@@ -25,15 +25,17 @@ class FashionTagger:
             layer.trainable = False
 
         x = Flatten()(x)
-        x = Dense(1024, activation="relu")(x)
         x = Dropout(0.5)(x)
-        x = Dense(1024, activation="relu")(x)
+        x = Dense(1024, activation="selu", kernel_initializer='lecun_normal')(x)
+        x = Dropout(0.5)(x)
+        x = Dense(512, activation="selu", kernel_initializer='lecun_normal')(x)
 
         predictions = Dense(CATEGORY_COUNTS_DICT[self._target], activation="softmax")(x)
 
         # this is the model we will train
         model = Model(inputs=base_model.input, outputs=predictions)
 
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        opt = Adamax(lr=0.01, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.01)
+        model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
         print(model.summary())
         return model

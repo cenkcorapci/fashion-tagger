@@ -8,12 +8,16 @@ class DataLoader:
     def __init__(self, target_column, batch_size=16, val_size=.1):
         print('Generating data for {0}...'.format(target_column))
         self._df = pd.read_csv(STYLES_DATA_SET_PATH, error_bad_lines=False)
-        self._df.dropna()
+
         self._df['image'] = self._df.apply(lambda row: str(row['id']) + ".jpg", axis=1)
+        self._df = self._df.dropna()
+        print(self._df.nunique())
+
         self._df = self._df[['image', target_column]]
-        self._df.dropna()
+
         print('Targeting;\n')
-        print(', '.join(self._df[target_column].unique().tolist()))
+        for t in self._df[target_column].unique().tolist():
+            print(t)
 
         self._val_size = val_size
         self._target_column = target_column

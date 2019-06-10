@@ -21,11 +21,11 @@ DL_MODELS_PATH = ROOT_PATH + 'models/dl/'
 TB_LOGS_PATH = ROOT_PATH + 'tb_logs/'
 
 CATEGORY_COUNTS_DICT = {'subCategory': 45,
-                        'articleType': 143,
+                        'articleType': 142,
                         'gender': 5,
-                        'season': 5,
-                        'baseColour': 47,
-                        'usage': 9}
+                        'season': 4,
+                        'baseColour': 46,
+                        'usage': 8}
 
 # create directories
 logging.info("Checking directories...")
