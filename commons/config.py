@@ -20,6 +20,12 @@ PRE_TRAINED_FASHION_TAGGER_WEIGHTS = None
 DL_MODELS_PATH = ROOT_PATH + 'models/dl/'
 TB_LOGS_PATH = ROOT_PATH + 'tb_logs/'
 
+CATEGORY_COUNTS_DICT = {'subCategory': 45,
+                        'articleType': 143,
+                        'gender': 5,
+                        'season': 5,
+                        'baseColour': 47,
+                        'usage': 9}
 
 # create directories
 logging.info("Checking directories...")

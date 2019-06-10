@@ -1,49 +1,51 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division
 
-from keras.callbacks import TensorBoard
+from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 
 from commons.config import *
 from commons.config import TB_LOGS_PATH
 from data.data_loader import DataLoader
 from models.fashion_tagger import FashionTagger
-from commons.model_storage import ModelStorage
 
 
 class FashionTaggerExperiment:
-    def __init__(self, val_split=0.1, nb_epochs=3, learning_rate=0.01, batch_size=32):
+    def __init__(self, target, val_split=0.1, nb_epochs=3, batch_size=128):
         self._in_inference_mode = False
         self._nb_epochs = nb_epochs
-        self._lr = learning_rate
-        self._model_name = 'mobile_net_fashion_multi_loss'
+        self._model_name = 'vgg16_fashion_multi_loss_' + target
 
-        logging.info("Getting data set...")
-        loader = DataLoader(batch_size, val_split)
+        self._loader = DataLoader(target, batch_size, val_split)
 
-        self._train_data_set = loader.training_generator()
-        self._val_data_set = loader.validation_generator()
-        self._model = FashionTagger()
+        self._train_data_set = self._loader.training_generator()
+        self._val_data_set = self._loader.validation_generator()
+        self._model = FashionTagger(target)
         self._model = self._model.generate_network()
+        tb_log_dir = TB_LOGS_PATH + self._model_name + '/'
+        pathlib.Path(tb_log_dir).mkdir(parents=True, exist_ok=True)
 
         # Set training/validation callbacks
-        tb_callback = TensorBoard(log_dir=TB_LOGS_PATH + self._model_name + '/', histogram_freq=0, write_graph=True,
+        tb_callback = TensorBoard(log_dir=tb_log_dir, histogram_freq=0, write_graph=True,
                                   write_images=False,
                                   embeddings_freq=0,
                                   embeddings_metadata=None)
-        self._callbacks = [tb_callback]
-        self.model_storage = ModelStorage(self._model_name)
+        es_callback = EarlyStopping(patience=2, monitor='val_loss')
+        checkpoint_callback = ModelCheckpoint(DL_MODELS_PATH + self._model_name + '.{epoch:02d}-{val_loss:.2f}.hdf5',
+                                              monitor='val_loss',
+                                              verbose=1,
+                                              save_best_only=False,
+                                              save_weights_only=False)
+
+        self._callbacks = [tb_callback, es_callback, checkpoint_callback]
 
     def train_model(self):
         self._model.fit_generator(
             generator=self._train_data_set,
+            callbacks=self._callbacks,
+            steps_per_epoch=self._loader.steps_per_epoch_for_training(),
             validation_data=self._val_data_set,
+            validation_steps=self._loader.steps_per_epoch_for_validation(),
             epochs=self._nb_epochs,
             verbose=1)
 
-        logging.info("Training complete")
-        self.model_storage.persist(self._model)
-        logging.info("Model persisted")
-
-
-if __name__ == "__main__":
-    experiment = FashionTaggerExperiment(nb_epochs=2, val_split=.1)
+        logging.info("Training complete for {0}".format(self._model_name))
