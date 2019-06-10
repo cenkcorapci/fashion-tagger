@@ -29,7 +29,7 @@ class FashionTaggerExperiment:
                                   write_images=False,
                                   embeddings_freq=0,
                                   embeddings_metadata=None)
-        es_callback = EarlyStopping(patience=3, monitor='val_loss')
+        es_callback = EarlyStopping(patience=5, monitor='val_loss')
         checkpoint_callback = ModelCheckpoint(DL_MODELS_PATH + self._model_name + '.{epoch:02d}-{val_loss:.2f}.hdf5',
                                               monitor='val_loss',
                                               verbose=1,
