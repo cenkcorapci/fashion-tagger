@@ -14,7 +14,7 @@ parser.add_argument('--val_split', type=float, default=.1)
 
 args = parser.parse_args()
 
-for target in ["season", "baseColour", "gender", "usage", "subCategory", "articleType"]:
+for target in ["usage", "masterCategory", "gender", "baseColour", "season"]:
     print('Running experiment for {0}'.format(target))
     experiment = FashionTaggerExperiment(target, nb_epochs=args.epochs, val_split=args.val_split)
     experiment.train_model()

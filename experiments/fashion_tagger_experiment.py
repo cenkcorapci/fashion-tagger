@@ -10,10 +10,10 @@ from models.fashion_tagger import FashionTagger
 
 
 class FashionTaggerExperiment:
-    def __init__(self, target, val_split=0.1, nb_epochs=3, batch_size=128):
+    def __init__(self, target, val_split=0.1, nb_epochs=3, batch_size=256):
         self._in_inference_mode = False
         self._nb_epochs = nb_epochs
-        self._model_name = 'vgg16_fashion_multi_loss_' + target
+        self._model_name = 'densenet_121_fashion_' + target
 
         self._loader = DataLoader(target, batch_size, val_split)
 

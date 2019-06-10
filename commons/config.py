@@ -20,7 +20,8 @@ PRE_TRAINED_FASHION_TAGGER_WEIGHTS = None
 DL_MODELS_PATH = ROOT_PATH + 'models/dl/'
 TB_LOGS_PATH = ROOT_PATH + 'tb_logs/'
 
-CATEGORY_COUNTS_DICT = {'subCategory': 45,
+CATEGORY_COUNTS_DICT = {'masterCategory': 7,
+                        'subCategory': 45,
                         'articleType': 142,
                         'gender': 5,
                         'season': 4,
