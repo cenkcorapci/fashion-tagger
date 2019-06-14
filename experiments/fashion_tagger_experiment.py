@@ -6,20 +6,23 @@ from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from commons.config import *
 from commons.config import TB_LOGS_PATH
 from data.data_loader import DataLoader
+from models.colour_extractor import ColourExtractor
 from models.fashion_tagger import FashionTagger
+
+from commons.ai_utils import step_decay_schedule
 
 
 class FashionTaggerExperiment:
     def __init__(self, target, val_split=0.1, nb_epochs=3, batch_size=256):
         self._in_inference_mode = False
         self._nb_epochs = nb_epochs
-        self._model_name = 'densenet_121_fashion_' + target
+        self._model_name = 'mobilenetv2_colour' if target == "baseColour" else 'xception_fashion_' + target
 
         self._loader = DataLoader(target, batch_size, val_split)
 
         self._train_data_set = self._loader.training_generator()
         self._val_data_set = self._loader.validation_generator()
-        self._model = FashionTagger(target)
+        self._model = ColourExtractor() if target == "baseColour" else FashionTagger(target)
         self._model = self._model.generate_network()
         tb_log_dir = TB_LOGS_PATH + self._model_name + '/'
         pathlib.Path(tb_log_dir).mkdir(parents=True, exist_ok=True)
@@ -35,8 +38,8 @@ class FashionTaggerExperiment:
                                               verbose=1,
                                               save_best_only=False,
                                               save_weights_only=False)
-
-        self._callbacks = [tb_callback, es_callback, checkpoint_callback]
+        lr_scheduler = step_decay_schedule(initial_lr=1e-4, decay_factor=0.75, step_size=2)
+        self._callbacks = [tb_callback, es_callback, checkpoint_callback, lr_scheduler]
 
     def train_model(self):
         self._model.fit_generator(
