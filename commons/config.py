@@ -11,6 +11,7 @@ LOGS_PATH = '/tmp/tb_logs/'
 
 # Experiments
 RANDOM_STATE = 41
+IMAGE_SIZE = 80
 
 # Local files
 ROOT_PATH = '/run/media/twoaday/data-storag/data-sets/fashion-product-images-small/'
@@ -19,14 +20,6 @@ IMAGES_FOLDER_PATH = ROOT_PATH + 'images/'
 PRE_TRAINED_FASHION_TAGGER_WEIGHTS = None
 DL_MODELS_PATH = ROOT_PATH + 'models/dl/'
 TB_LOGS_PATH = ROOT_PATH + 'tb_logs/'
-
-CATEGORY_COUNTS_DICT = {'masterCategory': 7,
-                        'subCategory': 45,
-                        'articleType': 142,
-                        'gender': 5,
-                        'season': 4,
-                        'baseColour': 46,
-                        'usage': 8}
 
 # create directories
 logging.info("Checking directories...")
