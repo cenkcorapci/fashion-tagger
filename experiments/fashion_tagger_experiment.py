@@ -11,7 +11,12 @@ from data.data_set import ClassificationDataSet
 
 
 class FashionTaggerExperiment:
-    def __init__(self, df, model_name, model, val_split=0.1, nb_epochs=3, batch_size=256):
+    def __init__(self, df,
+                 model_name,
+                 model,
+                 val_split=0.1,
+                 nb_epochs=3,
+                 batch_size=256):
         self._nb_epochs = nb_epochs
 
         self._model_name = model_name
@@ -41,7 +46,7 @@ class FashionTaggerExperiment:
                                               verbose=1,
                                               save_best_only=False,
                                               save_weights_only=False)
-        lr_scheduler = step_decay_schedule(initial_lr=.2, decay_factor=.1, step_size=2)
+        lr_scheduler = step_decay_schedule(initial_lr=.02, decay_factor=.75, step_size=2)
         self._callbacks = [tb_callback, es_callback, checkpoint_callback, lr_scheduler]
 
     def train_model(self):

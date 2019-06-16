@@ -1,11 +1,12 @@
 import argparse
+import logging
 
 import pandas as pd
 from tqdm import tqdm
 
 from commons.config import STYLES_DATA_SET_PATH
 from experiments.fashion_tagger_experiment import FashionTaggerExperiment
-from models.fashion_tagger import FashionTagger
+from models.fashion_tagger import FashionTagger, FashionTaggerModels
 
 usage_docs = """
 --epochs <integer> Number of epochs
@@ -29,129 +30,191 @@ def get_df():
     return df
 
 
-# Category Classifier ---------------------------------------------------------
-df = get_df()
+# Master category classifier
+try:
+    df = get_df()
 
+    exclude_list = ['Free Items', 'Sporting Goods', 'Home']
 
-def category_extractor(row):
-    if row['subCategory'] in ['Topwear', 'Dress', 'Headwear', 'Innerwear']:
-        if len(df.loc[df.articleType == str(row['articleType'])]) >= 800:
-            return str(row['articleType'])
-    if row['subCategory'] in ['Bottomwear', 'Shoes'] and len(df.loc[df.articleType == str(row['articleType'])]) >= 300:
-        return str(row['articleType'])
-    return str(row['subCategory'])
+    for exclude in exclude_list:
+        df = df.loc[df.masterCategory != exclude]
 
+    df = df[['image', 'masterCategory']]
+    df.columns = ['image', 'target']
+    model = FashionTagger(len(df.target.unique()), FashionTaggerModels.dense201)
+    experiment = FashionTaggerExperiment(df,
+                                         'dense_net_201_fashion_master_category',
+                                         model,
+                                         val_split=args.val_split,
+                                         nb_epochs=args.epochs,
+                                         batch_size=args.batch_size)
+    experiment.train_model()
 
-exclude_list = ['Vouchers', 'Home Furnishing', 'Umbrellas', 'Water Bottle', 'Bath and Body',
-                'Shoe Accessories', 'Sports Accessories', 'Sports Equipment', 'Free Gifts',
-                'Cufflinks', 'Apparel Set', 'Cufflinks', 'Green', 'Wristbands']
-tqdm.pandas()
-
-df['subCategory'] = df.progress_apply(lambda row: category_extractor(row), axis=1)
-
-for exclude in exclude_list:
-    df = df.loc[df.subCategory != exclude]
-
-df.subCategory = df.subCategory.replace({'Perfumes': 'Green',
-                                         'Lips': 'Cosmetic',
-                                         'Eyes': 'Cosmetic',
-                                         'Sandals': 'Sandal',
-                                         'Skin Care': 'Cosmetic',
-                                         'Makeup': 'Cosmetic',
-                                         'Skin': 'Cosmetic',
-                                         'Hair': 'Cosmetic',
-                                         'Nails': 'Cosmetic',
-                                         'Beauty Accessories': 'Cosmetic',
-                                         'Mufflers': 'Scarves',
-                                         'Stoles': 'Scarves'
-                                         })
-
-df = df[['image', 'subCategory']]
-df.columns = ['image', 'target']
-
-model = FashionTagger(len(df.target.unique()))
-experiment = FashionTaggerExperiment(df,
-                                     'mobile_net_v2_fashion_category',
-                                     model,
-                                     val_split=args.val_split,
-                                     nb_epochs=args.epochs,
-                                     batch_size=args.batch_size)
-experiment.train_model()
-
-# Color Classifier ---------------------------------------------------------
-df = get_df()
-df.baseColour = df.baseColour.replace({'Lime Green': 'Green',
-                                       'Fluorescent Green': 'Green',
-                                       'Sea Green': 'Green',
-                                       'Mushroom Brown': 'Brown',
-                                       'Coffee Brown': 'Brown',
-                                       'Bronze': 'Brown',
-                                       'Copper': 'Brown',
-                                       'Rose': 'Red',
-                                       'Burgundy': 'Purple',
-                                       'Metallic': 'Grey',
-                                       'Mustard': 'Yellow',
-                                       'Nude': 'Beige',
-                                       'Taupe': 'Grey',
-                                       'Mauve': 'Pink',
-                                       'Turquoise Blue': 'Teal',
-                                       'Maroon': 'Red',
-                                       'Rust': 'Orange',
-                                       'Skin': 'Beige',
-                                       'Tan': 'Beige',
-                                       'Off White': 'White'})
-df = df[['image', 'baseColour']]
-df.columns = ['image', 'target']
-
-model = FashionTagger(len(df.target.unique()))
-experiment = FashionTaggerExperiment(df,
-                                     'mobile_net_v2_fashion_base_color',
-                                     model,
-                                     val_split=args.val_split,
-                                     nb_epochs=args.epochs,
-                                     batch_size=args.batch_size)
-experiment.train_model()
-
-# season classifier ---------------------------------------------------------
-df = get_df()
-
-df = df[['image', 'season']]
-df.columns = ['image', 'target']
-model = FashionTagger(len(df.target.unique()))
-experiment = FashionTaggerExperiment(df,
-                                     'mobile_net_v2_fashion_season',
-                                     model,
-                                     val_split=args.val_split,
-                                     nb_epochs=args.epochs,
-                                     batch_size=args.batch_size)
-
-# gender classifier ---------------------------------------------------------
-df = get_df()
-df.gender = df.gender.replace({'Boys': 'Men', 'Girls': 'Women'})
-df = df[['image', 'gender']]
-df.columns = ['image', 'target']
-model = FashionTagger(len(df.target.unique()))
-experiment = FashionTaggerExperiment(df,
-                                     'mobile_net_v2_fashion_gender',
-                                     model,
-                                     val_split=args.val_split,
-                                     nb_epochs=args.epochs,
-                                     batch_size=args.batch_size)
-experiment.train_model()
+except Exception as exp:
+    print("Can not train a season classifier", exp)
 
 # usage classifier ---------------------------------------------------------
-df = get_df()
-df.usage = df.usage.replace({'Smart Casual': 'Casual'})
-df.usage = df.usage.replace({'Home': 'Other', 'Travel': 'Other', 'Party': 'Other'})
-df = df.loc[df.usage != 'Other']
+try:
+    df = get_df()
+    df.usage = df.usage.replace({'Smart Casual': 'Casual'})
+    df.usage = df.usage.replace({'Home': 'Other', 'Travel': 'Other', 'Party': 'Other'})
+    df = df.loc[df.usage != 'Other']
 
-df = df[['image', 'usage']]
-df.columns = ['image', 'target']
-model = FashionTagger(len(df.target.unique()))
-experiment = FashionTaggerExperiment(df,
-                                     'mobile_net_v2_fashion_usage',
-                                     model,
-                                     val_split=args.val_split,
-                                     nb_epochs=args.epochs,
-                                     batch_size=args.batch_size)
-experiment.train_model()
+    df = df[['image', 'usage']]
+    df.columns = ['image', 'target']
+    model = FashionTagger(len(df.target.unique()))
+    experiment = FashionTaggerExperiment(df,
+                                         'mobile_net_v2_fashion_usage',
+                                         model,
+                                         val_split=args.val_split,
+                                         nb_epochs=args.epochs,
+                                         batch_size=args.batch_size)
+    experiment.train_model()
+
+except Exception as exp:
+    logging.error("Can not train a usage classifier", exp)
+
+# season classifier ---------------------------------------------------------
+try:
+    df = get_df()
+    df = df.loc[df.masterCategory.isin(['Footwear', 'Apparel'])]
+
+    df = df[['image', 'season']]
+    df.columns = ['image', 'target']
+    model = FashionTagger(len(df.target.unique()))
+    experiment = FashionTaggerExperiment(df,
+                                         'mobile_net_v2_fashion_season',
+                                         model,
+                                         val_split=args.val_split,
+                                         nb_epochs=args.epochs,
+                                         batch_size=args.batch_size)
+    experiment.train_model()
+
+except Exception as exp:
+    print("Can not train a season classifier", exp)
+
+# Color Classifier ---------------------------------------------------------
+try:
+
+    def color_extractor(row):
+        if len(df.loc[df.baseColour == str(row['baseColour'])]) >= 500:
+            return str(row['baseColour'])
+        else:
+            return 'Other'
+
+
+    df = get_df()
+    df = df.loc[df.masterCategory.isin(['Footwear', 'Apparel'])]
+
+    tqdm.pandas()
+    df['baseColour'] = df.progress_apply(lambda row: color_extractor(row), axis=1)
+    df = df.loc[df.baseColour != 'Other']
+
+    df = df[['image', 'baseColour']]
+    df.columns = ['image', 'target']
+
+    model = FashionTagger(len(df.target.unique()))
+    experiment = FashionTaggerExperiment(df,
+                                         'mobile_net_v2_fashion_base_color',
+                                         model,
+                                         val_split=args.val_split,
+                                         nb_epochs=args.epochs,
+                                         batch_size=args.batch_size)
+    experiment.train_model()
+except Exception as exp:
+    logging.error("Can not train a base color classifier", exp)
+
+# Category Classifier ---------------------------------------------------------
+try:
+    df = get_df()
+
+
+    def category_extractor(row):
+        if row['masterCategory'] == 'Personal Care':
+            return 'Personal Care'
+        if row['subCategory'] in ['Topwear', 'Dress', 'Headwear', 'Innerwear']:
+            if len(df.loc[df.articleType == str(row['articleType'])]) >= 800:
+                return str(row['articleType'])
+        if row['subCategory'] in ['Bottomwear', 'Shoes'] and len(
+                df.loc[df.articleType == str(row['articleType'])]) >= 300:
+            return str(row['articleType'])
+        return str(row['subCategory'])
+
+
+    df = df.loc[df.masterCategory != 'Sporting Goods']
+
+    exclude_list = ['Vouchers', 'Green', 'Home Furnishing', 'Umbrellas', 'Water Bottle', 'Bath and Body',
+                    'Shoe Accessories', 'Sports Accessories', 'Sports Equipment', 'Free Gifts',
+                    'Apparel Set']
+
+    for exclude in exclude_list:
+        df = df.loc[df.subCategory != exclude]
+
+    tqdm.pandas()
+    df['subCategory'] = df.progress_apply(lambda row: category_extractor(row), axis=1)
+
+    df.subCategory = df.subCategory.replace({'Perfumes': 'Green',
+                                             'Lips': 'Cosmetic',
+                                             'Eyes': 'Cosmetic',
+                                             'Wristbands': 'Accessories',
+                                             'Cufflinks': 'Accessories',
+                                             'Gloves': 'Accessories',
+                                             'Sandals': 'Sandal',
+                                             'Skin Care': 'Cosmetic',
+                                             'Makeup': 'Cosmetic',
+                                             'Skin': 'Cosmetic',
+                                             'Hair': 'Cosmetic',
+                                             'Nails': 'Cosmetic',
+                                             'Beauty Accessories': 'Cosmetic',
+                                             'Mufflers': 'Scarves',
+                                             'Stoles': 'Scarves'
+                                             })
+
+    df = df[['image', 'subCategory']]
+    df.columns = ['image', 'target']
+
+    model = FashionTagger(len(df.target.unique()))
+    experiment = FashionTaggerExperiment(df,
+                                         'mobile_net_v2_fashion_category',
+                                         model,
+                                         val_split=args.val_split,
+                                         nb_epochs=args.epochs,
+                                         batch_size=args.batch_size)
+    experiment.train_model()
+except Exception as exp:
+    logging.error("Can not train a category classifier", exp)
+
+# season classifier ---------------------------------------------------------
+try:
+    df = get_df()
+
+    df = df[['image', 'season']]
+    df.columns = ['image', 'target']
+    model = FashionTagger(len(df.target.unique()))
+    experiment = FashionTaggerExperiment(df,
+                                         'mobile_net_v2_fashion_season',
+                                         model,
+                                         val_split=args.val_split,
+                                         nb_epochs=args.epochs,
+                                         batch_size=args.batch_size)
+
+except Exception as exp:
+    logging.error("Can not train a season classifier", exp)
+
+# gender classifier ---------------------------------------------------------
+try:
+    df = get_df()
+    df.gender = df.gender.replace({'Boys': 'Men', 'Girls': 'Women'})
+    df = df[['image', 'gender']]
+    df.columns = ['image', 'target']
+    model = FashionTagger(len(df.target.unique()))
+    experiment = FashionTaggerExperiment(df,
+                                         'mobile_net_v2_fashion_gender',
+                                         model,
+                                         val_split=args.val_split,
+                                         nb_epochs=args.epochs,
+                                         batch_size=args.batch_size)
+    experiment.train_model()
+
+except Exception as exp:
+    logging.error("Can not train a gender classifier", exp)

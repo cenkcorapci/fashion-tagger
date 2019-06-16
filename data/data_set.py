@@ -26,6 +26,7 @@ class ClassificationDataSet(keras.utils.Sequence):
         self._weights = class_weight.compute_class_weight('balanced', self._target_list, df.target)
         self._data_set = df.values.tolist()
         self._do_augmentations = do_augmentations
+        logging.info('Targets are; {0}'.format(', '.join(self._target_list)))
 
         self._aug = iaa.Sequential([
             iaa.Crop(px=(0, 16)),  # crop images from each side by 0 to 16px (randomly chosen)
