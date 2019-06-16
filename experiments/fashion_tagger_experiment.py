@@ -41,7 +41,7 @@ class FashionTaggerExperiment:
                                               verbose=1,
                                               save_best_only=False,
                                               save_weights_only=False)
-        lr_scheduler = step_decay_schedule(initial_lr=0.02, decay_factor=0.75, step_size=2)
+        lr_scheduler = step_decay_schedule(initial_lr=.2, decay_factor=.1, step_size=2)
         self._callbacks = [tb_callback, es_callback, checkpoint_callback, lr_scheduler]
 
     def train_model(self):
@@ -51,6 +51,9 @@ class FashionTaggerExperiment:
             validation_data=self._val_set,
             epochs=self._nb_epochs,
             class_weight=self._train_set.get_class_weights(),
+            use_multiprocessing=True,
+            workers=4,
+            max_queue_size=32,
             verbose=1)
 
         logging.info("Training complete for {0}".format(self._model_name))

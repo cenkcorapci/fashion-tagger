@@ -1,6 +1,6 @@
 import keras
-from keras.applications.xception import Xception
-from keras.layers import Dense, Dropout, Flatten, BatchNormalization
+from keras.applications.mobilenet_v2 import MobileNetV2
+from keras.layers import Dense, Dropout, GlobalMaxPooling2D
 from keras.models import Model
 
 from commons.config import IMAGE_SIZE
@@ -12,20 +12,16 @@ class FashionTagger:
 
     def generate_network(self):
         # base pre-trained model
-        base_model = Xception(input_shape=(IMAGE_SIZE, IMAGE_SIZE, 3), weights="imagenet", include_top=False)
+        base_model = MobileNetV2(input_shape=(IMAGE_SIZE, IMAGE_SIZE, 3), weights="imagenet", include_top=False)
 
         x = base_model.output
         for layer in base_model.layers:
-            layer.trainable = False
+            layer.trainable = True
 
         # added layers
-        x = Flatten()(x)
-        x = BatchNormalization()(x)
+        x = GlobalMaxPooling2D()(x)
         x = Dropout(0.5)(x)
-        x = Dense(1024, activation='relu')(x)
-        x = BatchNormalization()(x)
-        x = Dropout(0.5)(x)
-        x = Dense(1024, activation='relu')(x)
+        x = Dense(1024, activation='selu', kernel_initializer='lecun_normal')(x)
         predictions = Dense(self._target, activation="softmax")(x)
 
         # this is the model we will train

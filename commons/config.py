@@ -11,7 +11,7 @@ LOGS_PATH = '/tmp/tb_logs/'
 
 # Experiments
 RANDOM_STATE = 41
-IMAGE_SIZE = 80
+IMAGE_SIZE = 96
 
 # Local files
 ROOT_PATH = '/run/media/twoaday/data-storag/data-sets/fashion-product-images-small/'
