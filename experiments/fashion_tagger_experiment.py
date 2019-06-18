@@ -7,11 +7,12 @@ from sklearn.model_selection import train_test_split
 from commons.ai_utils import step_decay_schedule
 from commons.config import *
 from commons.config import TB_LOGS_PATH
-from data.data_set import ClassificationDataSet
+from data.tagging_data_set import TaggingDataSet
 
 
-class FashionTaggerExperiment:
+class FashionClassifierExperiment:
     def __init__(self, df,
+                 targets,
                  model_name,
                  model,
                  val_split=0.1,
@@ -23,14 +24,16 @@ class FashionTaggerExperiment:
         self._model = model.generate_network()
 
         self._train_set, self._val_set = train_test_split(df, test_size=val_split)
-        self._train_set = ClassificationDataSet(self._train_set,
-                                                batch_size=batch_size,
-                                                shuffle_on_end=True,
-                                                do_augmentations=True)
-        self._val_set = ClassificationDataSet(self._val_set,
-                                              batch_size=batch_size,
-                                              shuffle_on_end=False,
-                                              do_augmentations=False)
+        self._train_set = TaggingDataSet(self._train_set,
+                                         targets,
+                                         batch_size=batch_size,
+                                         shuffle_on_end=True,
+                                         do_augmentations=True)
+        self._val_set = TaggingDataSet(self._val_set,
+                                       targets,
+                                       batch_size=batch_size,
+                                       shuffle_on_end=False,
+                                       do_augmentations=False)
 
         tb_log_dir = TB_LOGS_PATH + self._model_name + '/'
         pathlib.Path(tb_log_dir).mkdir(parents=True, exist_ok=True)
@@ -55,7 +58,6 @@ class FashionTaggerExperiment:
             callbacks=self._callbacks,
             validation_data=self._val_set,
             epochs=self._nb_epochs,
-            class_weight=self._train_set.get_class_weights(),
             use_multiprocessing=True,
             workers=4,
             max_queue_size=32,

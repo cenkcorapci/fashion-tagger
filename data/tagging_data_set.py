@@ -7,26 +7,27 @@ import keras
 import numpy as np
 from PIL import Image
 from keras.preprocessing import image
-from sklearn.utils import class_weight
 from sklearn.utils import shuffle
 
 from commons.config import IMAGES_FOLDER_PATH
 from commons.config import IMAGE_SIZE
+from commons.data_utils import generate_get_data_set
 from commons.image_utils import scale_image
 
 
-class ClassificationDataSet(keras.utils.Sequence):
-    def __init__(self, df,
+class TaggingDataSet(keras.utils.Sequence):
+    def __init__(self,
+                 df,
+                 targets,
                  batch_size=128,
                  shuffle_on_end=True,
                  do_augmentations=True):
         self._batch_size = batch_size
         self._shuffle = shuffle_on_end
-        self._target_list = sorted(df.target.unique().tolist())
-        self._weights = class_weight.compute_class_weight('balanced', self._target_list, df.target)
-        self._data_set = df.values.tolist()
+        self._target_list = targets
+        self._data_set = generate_get_data_set(df)
         self._do_augmentations = do_augmentations
-        logging.info('Targets are; {0}'.format(', '.join(self._target_list)))
+        logging.info('{0} targets; {1}'.format(len(targets), ', '.join(self._target_list)))
 
         self._aug = iaa.Sequential([
             iaa.Crop(px=(0, 16)),  # crop images from each side by 0 to 16px (randomly chosen)
@@ -53,9 +54,6 @@ class ClassificationDataSet(keras.utils.Sequence):
             else:
                 raise exp
 
-    def get_class_weights(self):
-        return self._weights
-
     def on_epoch_end(self):
         if self._shuffle:
             logging.info("Shuffling data set")
@@ -66,9 +64,10 @@ class ClassificationDataSet(keras.utils.Sequence):
         y = np.zeros((self._batch_size, len(self._target_list)))
 
         for i, sample in enumerate(samples):
-            img_path, label = sample[0], sample[1]
+            img_path, labels = sample[0], sample[1]
             X[i] = self._load_image(IMAGES_FOLDER_PATH + img_path)
-            y[i][self._target_list.index(label)] = 1.
+            for label in labels:
+                y[i][self._target_list.index(label)] = 1.
         return X, y
 
     def _load_image(self, img_path):
